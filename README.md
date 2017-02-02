@@ -7,7 +7,8 @@
 
 ```
 sudo apt-get update
-sudo apt-get install hostapd isc-dhcp-server```
+sudo apt-get install hostapd isc-dhcp-server
+```
 
 * After successful configuration listed below
 
@@ -27,6 +28,7 @@ In
 /etc/hostapd/hostapd.conf
 
 ```
+
 Put the following lines, if the file does not exist, create it
 
 interface=wlp2s0
@@ -62,7 +64,8 @@ For dhcpd we need to configure two files
 in 
 
 ```
-/etc/default/isc-dhcp-server```
+/etc/default/isc-dhcp-server
+```
 
 put this one liner
 
