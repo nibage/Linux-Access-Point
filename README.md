@@ -18,7 +18,7 @@ enable_wifi - destroy accesspoint and permit normal connection to wifis
 
 
 ## Example configuration ##
-    Hostapd 
+* Hostapd 
 
 My wireless interface ```wlp2s0``` and ethernet ```enp1s0```
 
@@ -44,7 +44,7 @@ wpa_key_mgmt=WPA-PSK
 wpa_pairwise=TKIP
 rsn_pairwise=CCMP
 
-    ### DHCPd ###
+* DHCPd
 
 For dhcpd we need to configure two files
 
