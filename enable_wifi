@@ -1,0 +1,29 @@
+#! /usr/bin/env bash
+
+# will shutdown accesspoint and permits
+# wireless device to connect to other accesspoints
+
+wif="wlp2s0"
+
+sudo service hostapd stop
+sudo service isc-dhcp-server stop
+
+sudo pkill dhcpd
+sudo pkill hostapd
+
+sleep 2
+
+iptables --flush
+iptables --table nat --flush
+iptables --delete-chain
+iptables --table nat --delete-chain
+
+sysctl -w net.ipv4.ip_forward=0
+
+sudo ifconfig ${wif} 0.0.0.0 # unsets ifconfig
+
+sudo nmcli radio wifi off
+
+echo "Succesfully set"
+
+exit 0

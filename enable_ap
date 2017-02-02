@@ -1,0 +1,122 @@
+#! /usr/bin/env bash
+
+# Links
+# https://nims11.wordpress.com/2012/04/27/hostapd-the-linux-way-to-create-virtual-wifi-access-point/comment-page-3/
+# https://donnutcompute.wordpress.com/2014/04/20/connect-to-wi-fi-via-command-line/
+# http://askubuntu.com/questions/1786/what-is-the-difference-between-network-manager-and-ifconfig-ifup-etc
+# http://www.abclinuxu.cz/clanky/system/debian-etc-network-interfaces-konfigurace-sitovych-rozhrani
+# https://seravo.fi/2014/create-wireless-access-point-hostapd
+# http://ubuntuforums.org/showthread.php?t=1663788
+
+# In this script, the order of commands is important
+
+# during creating an AP, the control of wifi card
+# is taken from network manager 
+
+# some wifi devices have virtual shutdown button 
+# via rfkill, you can disable this blocking button
+
+# before starting dhcp client (below) one must set
+# static ip of wifi device manually (ifconfig)
+
+# Broadcast deamon: Hostapd
+# Version 2.1 (maybe 2.0) has bug and doesn't work for me
+# older version lock in synaptic or apt-get
+# config file in /etc/hostapd/hostapd.conf
+# can choose from wide range of different configurations
+# https://wiki.gentoo.org/wiki/Hostapd
+# /etc/init.d/hostapd start
+# nebo sudo service hostapd start
+# athk9 nebo athk5
+
+# DHCP server: isc-dhcp-server, alternative might be dnsmasq
+# configuration files:
+# /etc/default/isc-dhcp-server << INTERFACES="wlan0"
+# /etc/dhcp/dhcpd.conf << advanced konfiguration, there is a lot of examples
+
+# sudo /etc/init.d/isc-dhcp-server stop == sudo service isc-dhcp-server stop
+# it is possible to assign static ip addresses based on mac (printers...)
+# command dhcpd == service isc-dhcp-server start
+
+# there is a need to configure routing from external network (wan)
+# to internal wlan via NAT. Utility iptables is used
+
+# networkmanager 
+# sudo nmcli nm wifi on, new version "nmcli radio wifi"
+
+# interfaces
+# /etc/network/interfaces
+
+# sysctl -> utility to change kernel parameters in runtime
+# in case we need to change it permanently
+# this parameter should go to /etc/sysctl.conf << inet
+
+# TODO - there is a software called - update-rc.d
+
+# wpa_supplicant info here
+# http://ubuntuforums.org/showthread.php?t=263136
+
+# additional info:
+# man interfaces
+# man ifconfig
+# man ifup
+# ip: show / manipulate routing, devices, policy routing and tunnels
+# iwconfig: configure a wireless network interface
+# wpa_supplicant: Wi-Fi Protected Access client and IEEE 802.1X supplicant
+# rfkill: tool for enabling and disabling wireless devices
+# iw wlan0 info
+# some other configuration files: /etc/network/interfaces
+
+wif="wlp2s0" #wireless interface
+eif="enp1s0" #ethernet interface
+
+sudo rfkill unblock all # unblock device
+sleep 5
+sudo nmcli radio wifi off # take control from network manager older versions -nmcli nm wifi off
+
+# Initial wifi interface configuration
+# must be configured manually
+# before launching dhcp, otherwise throws error
+
+sudo ifconfig ${wif} up 192.168.1.1 netmask 255.255.255.0 # same config as in /dh
+sleep 2
+
+#Thanks to Panji
+#Doesn't try to run dhcpd when already running
+if [[ $(ps -e | grep 'dhcpd') = "" ]]; then
+    sudo dhcpd ${wif}
+    echo "DHCP succesfuly running"
+else 
+    #sudo kill $(ps -e | grep 'dhcp' | awk -v RS=[0-9]+ '{print RT+0;exit}') 
+    sudo pkill dhcpd
+    sleep 2
+    sudo dhcpd ${wif}
+    echo "DHCP restarted"
+fi
+
+#Enable NAT
+iptables --flush
+iptables --table nat --flush
+iptables --delete-chain
+iptables --table nat --delete-chain
+iptables --table nat --append POSTROUTING --out-interface ${eif} -j MASQUERADE
+iptables --append FORWARD --in-interface ${wif} -j ACCEPT
+ 
+#Uncomment the line below if facing problems while sharing PPPoE
+#iptables -I FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
+
+#set kernel module
+sysctl -w net.ipv4.ip_forward=1
+
+#start hostapd
+if [[ $(ps -e | grep 'hostapd') = "" ]]; then
+    sudo hostapd -B /etc/hostapd/hostapd.conf
+    echo "hostapd succesfuly running"
+else 
+    sudo pkill hostapd
+    sleep 2 
+    sudo hostapd -B /etc/hostapd/hostapd.conf
+    echo "hostapd restarted"
+fi
+
+exit 0
