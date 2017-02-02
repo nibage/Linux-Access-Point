@@ -18,7 +18,7 @@ enable_wifi - destroy accesspoint and permit normal connection to wifis
 
 
 ## Example configuration ##
-    ### Hostapd ###
+    Hostapd 
 
 My wireless interface ```wlp2s0``` and ethernet ```enp1s0```
 
